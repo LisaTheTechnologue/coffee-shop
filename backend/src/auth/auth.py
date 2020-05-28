@@ -3,11 +3,12 @@ from flask import request, _request_ctx_stack
 from functools import wraps
 from jose import jwt
 from urllib.request import urlopen
+from os import abort
 
 
-AUTH0_DOMAIN = 'udacity-fsnd.auth0.com'
+AUTH0_DOMAIN = 'coffeeshop-jolisa.auth0.com'
 ALGORITHMS = ['RS256']
-API_AUDIENCE = 'dev'
+API_AUDIENCE = 'coffeeshop'
 
 ## AuthError Exception
 '''
@@ -75,8 +76,18 @@ def get_token_auth_header():
     return true otherwise
 '''
 def check_permissions(permission, payload):
-    raise Exception('Not Implemented')
+    if 'permissions' not in payload:
+        raise AuthError({
+            'code': 'invalid_header',
+            'description': 'Permissions are not included in the payload.'
+        }, 400)
+    if permission not in payload['permissions']:
+        raise AuthError({
+            'code': 'invalid_header',
+            'description': 'The requested permission string is not in the payload permissions array.'
+        }, 403)
 
+    return True
 '''
 @TODO implement verify_decode_jwt(token) method
     @INPUTS

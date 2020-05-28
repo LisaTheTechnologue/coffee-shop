@@ -33,7 +33,7 @@ def get_drinks():
     drinks = [data.short() for data in datas]
     return jsonify({'success': True,
                     "drinks": drinks
-                    })
+                    }), 200
 
 '''
 @TODO DONE implement endpoint
@@ -43,13 +43,14 @@ def get_drinks():
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
-@app.route("/drinks-detail")
-def get_drinks_detail():
+@app.route("/drinks-detail", methods=['GET'])
+@requires_auth('get:drinks-detail')
+def get_drinks_detail(token):
     datas = Drink.query.all()
-    drinks = [data.long() for data in datas]
+    drinks = [Drink.long(data) for data in datas]
     return jsonify({'success': True,
                     "drinks": drinks
-                    })
+                    }), 200
 
 '''
 @TODO DONE implement endpoint
@@ -61,16 +62,21 @@ def get_drinks_detail():
         or appropriate status code indicating reason for failure
 '''
 @app.route("/drinks", methods=['POST'])
-def post_drinks():
-    body = request.get_json()
-    new_title = body.get('title', None)
-    new_recipe = body.get('recipe', None)
-    drink = Drink(title=title,recipe=recipe)
-    drink.insert()
-    return jsonify({'success': True,
-                    "drinks": drink
-                    })
+@requires_auth('post:drinks')
+def post_drinks(jwt):
+    if request.data:
+        body = request.get_json()
+        new_title = body.get('title', None)
+        new_recipes = body.get('recipe', None)
+        drink = Drink(title=new_title,recipe=json.dumps(new_recipes))
+        drink.insert()
 
+        new_drink = Drink.query.filter_by(id=drink.id).first()
+        return jsonify({'success': True,
+                        "drinks": [new_drink.long()]
+                        }), 200
+    else:
+        abort(422)
 '''
 @TODO implement endpoint
     PATCH /drinks/<id>
@@ -82,27 +88,24 @@ def post_drinks():
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
         or appropriate status code indicating reason for failure
 '''
-@app.route("/drinks/<id>", methods=['PATCH'])
-def patch_drinks(id):
+@app.route('/drinks/<int:id>', methods=['PATCH'])
+@requires_auth('patch:drinks')
+def update_drink(jwt,id):
     try:
-        drink = Drink.query.filter(Drink.id == id)\
-                                    .one_or_none()
-
-        if drink is None:
-            abort(404)
-
+        drink = Drink.query.filter(Drink.id == id).one_or_none() 
+        if not drink : raise
         body = request.get_json()
-        new_title = body.get('title', None)
-        new_recipe = body.get('recipe', None)
-        drink = Drink(title=title,recipe=recipe)
+        drink.title = body.get('title', drink.title)
+        recipe = json.dumps(body.get('recipe'))
+        drink.recipe = recipe if recipe != 'null' else drink.recipe
         drink.update()
-        datas = Drink.query.all()
-        drinks = [data.long() for data in datas]        
-        return jsonify({'success': True,
-                        "drinks": drink
-                        })
-    except Exception:
-        abort(404)
+        return  jsonify({"success": True, "drinks": [drink.long()]}), 200
+    except AuthError:
+        abort()
+    except:
+        if not drink: abort(404)
+        abort(422)
+
 '''
 @TODO DONE implement endpoint
     DELETE /drinks/<id>
@@ -113,8 +116,9 @@ def patch_drinks(id):
     returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
         or appropriate status code indicating reason for failure
 '''
-@app.route("/drinks/<id>", methods=['DELETE'])
-def delete_drinks():
+@app.route("/drinks/<int:id>", methods=['DELETE'])
+@requires_auth('delete:drinks')
+def delete_drinks(jwt,id):
     try:
         drink = Drink.query.filter(Drink.id == id)\
                                 .one_or_none()
@@ -126,7 +130,7 @@ def delete_drinks():
 
         return jsonify({'success': True,
                         "delete": id
-                        })
+                        }), 200
     except Exception:
         abort(404)
 ## Error Handling

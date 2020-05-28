@@ -38,7 +38,7 @@ class Drink(db.Model):
     id = Column(Integer().with_variant(Integer, "sqlite"), primary_key=True)
     # String Title
     title = Column(String(80), unique=True)
-    # the ingredients blob - this stores a lazy json blob
+    # he tingredients blob - this stores a lazy json blob
     # the required datatype is [{'color': string, 'name':string, 'parts':number}]
     recipe =  Column(String(180), nullable=False)
 
