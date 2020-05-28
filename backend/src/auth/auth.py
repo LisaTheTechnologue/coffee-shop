@@ -85,7 +85,7 @@ def check_permissions(permission, payload):
         raise AuthError({
             'code': 'invalid_header',
             'description': 'The requested permission string is not in the payload permissions array.'
-        }, 403)
+        }, 401)
 
     return True
 '''
